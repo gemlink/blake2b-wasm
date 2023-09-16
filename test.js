@@ -2,15 +2,7 @@ var tape = require('tape')
 var blake2b = require('./')
 var vectors = require('blake2b/test-vectors.json')
 
-var readyCalled = false
-process.on('exit', function () {
-  if (!readyCalled)
-    throw new Error('ready not called')
-})
-
 blake2b.ready(function () {
-  readyCalled = true
-
   tape('hello world', function (t) {
     var hash = blake2b()
       .update(Buffer.from('hello'))
@@ -55,29 +47,13 @@ blake2b.ready(function () {
     t.end()
   })
 
-  tape('allows getting & setting a partial hash', function (t) {
-    var a = blake2b(64)
-    var b = blake2b(64)
-
-    var partialHash = a
-      .update(Buffer.from('hello'))
-      .update(Buffer.from(' '))
-      .update(Buffer.from('world'))
-      .getPartialHash()
-
-    b.setPartialHash(partialHash)
-
-    t.same(a.digest(), b.digest())
-    t.end()
-  })
-
   vectors.forEach(function (vector, i) {
     tape('test-vectors.json #' + i, function (t) {
       var key = vector.key && Buffer.from(vector.key, 'hex')
       var salt = vector.salt && Buffer.from(vector.salt, 'hex')
       var personal = vector.personal && Buffer.from(vector.personal, 'hex')
 
-      var hash = blake2b(vector.outlen, key, salt, personal, true)
+      var hash = blake2b(vector.outlen, key, salt, personal)
         .update(Buffer.from(vector.input, 'hex'))
         .digest('hex')
 
@@ -86,16 +62,3 @@ blake2b.ready(function () {
     })
   })
 })
-
-tape('.ready()', function (t) {
-  var invokeCount = 0;
-  blake2b.ready()
-    .then(function () {
-      invokeCount++
-      throw new Error()
-    })
-    .catch(function (err) {
-      t.same(invokeCount, 1)
-      t.end()
-    })
-});
